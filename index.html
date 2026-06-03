@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>重生体验馆</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+  <!-- 烟雾粒子层 -->
+  <canvas id="smokeCanvas"></canvas>
+
+  <!-- 过渡层：色彩渐变 + 角色名 -->
+  <div class="transition-overlay" id="transitionOverlay">
+    <div class="trans-glow"></div>
+    <div class="trans-content">
+      <div class="trans-name" id="transName"></div>
+      <div class="trans-era" id="transEra"></div>
+    </div>
+  </div>
+
+  <!-- ====== 首页 ====== -->
+  <div id="screen-home" class="screen active">
+    <div class="home-content">
+      <div class="silhouette-container">
+        <div class="silhouette">
+          <div class="silhouette-body"></div>
+          <div class="silhouette-glow"></div>
+        </div>
+        <div class="silhouette-mist"></div>
+      </div>
+
+      <h1 class="home-title">重生体验馆</h1>
+      <p class="home-subtitle">你即将成为另一个人</p>
+
+      <div class="home-cta" onclick="startDraw()">
+        <span class="cta-text">触碰命运</span>
+        <span class="cta-line"></span>
+      </div>
+
+      <button class="btn-link" onclick="showScreen('collection');renderCollection()">前世档案</button>
+    </div>
+  </div>
+
+  <!-- ====== 人生页 ====== -->
+  <div id="screen-life" class="screen">
+    <div class="life-content">
+      <div class="life-header" id="lifeHeader"></div>
+      <div class="timeline" id="timeline"></div>
+      <div class="life-actions" id="lifeActions"></div>
+    </div>
+  </div>
+
+  <!-- ====== 结局页 ====== -->
+  <div id="screen-ending" class="screen">
+    <div class="ending-content">
+      <div class="ending-icon">— 终 —</div>
+      <div class="ending-header">
+        <h2 class="ending-name" id="endingName"></h2>
+        <div class="ending-era" id="endingEra"></div>
+      </div>
+      <div class="ending-card">
+        <div class="ending-summary" id="endingSummary"></div>
+        <div class="ending-divider"></div>
+        <div class="ending-history">
+          <div class="ending-history-label">历史注脚</div>
+          <div class="ending-history-text" id="endingHistory"></div>
+        </div>
+      </div>
+      <div class="ending-actions">
+        <button class="btn btn-primary" onclick="startDraw()">换一个人生</button>
+        <button class="btn btn-secondary" id="btnCollect" onclick="toggleCollect()">收藏此生</button>
+        <button class="btn btn-ghost-center" onclick="showScreen('home')">回到入口</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 收藏页 ====== -->
+  <div id="screen-collection" class="screen">
+    <div class="collection-content">
+      <h2 class="collection-title">前世档案</h2>
+      <div class="collection-tabs">
+        <button class="collection-tab active" onclick="switchCollectionTab('all')" id="tabAll">全部</button>
+        <button class="collection-tab" onclick="switchCollectionTab('collected')" id="tabCollected">已收藏</button>
+      </div>
+      <div class="collection-grid" id="collectionGrid"></div>
+      <div class="collection-empty" id="collectionEmpty" style="display:none">
+        <p>尚未经历过任何人生</p>
+        <button class="btn btn-primary" onclick="startDraw()">去体验</button>
+      </div>
+      <button class="btn-link" onclick="showScreen('home')">回到入口</button>
+    </div>
+  </div>
+
+  <script src="data/characters.js"></script>
+  <script src="app.js?v=15"></script>
+</body>
+</html>
