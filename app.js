@@ -145,7 +145,12 @@ const TONE_COLORS = {
 function startDraw() {
   if (characterPool.length === 0) return;
 
-  selectedCharacter = characterPool[Math.floor(Math.random() * characterPool.length)];
+  // 优先抽未体验过的角色，全部体验过则重新洗牌
+  const history = getHistory();
+  let pool = characterPool.filter(c => !history.includes(c.id));
+  if (pool.length === 0) pool = characterPool;
+
+  selectedCharacter = pool[Math.floor(Math.random() * pool.length)];
 
   // 直接启动过渡动画
   startTransition(selectedCharacter);
