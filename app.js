@@ -289,12 +289,20 @@ function updateBottomAction(event, isLast) {
 }
 
 function makeChoice(index, nodeId) {
-  const event = currentCharacter.events[currentEventIndex];
-  const choice = event.choices[index];
-  pendingChoice = choice;
-
   const node = document.getElementById(nodeId);
   if (!node) return;
+
+  // 用节点记录的 eventIndex 定位，避免 currentEventIndex 不同步
+  const eventIndex = parseInt(node.dataset.eventIndex);
+  const event = currentCharacter.events[eventIndex];
+  if (!event || !event.choices) return;
+  const choice = event.choices[index];
+  if (!choice) return;
+
+  // 同步 currentEventIndex 到该节点
+  currentEventIndex = eventIndex;
+  pendingChoice = choice;
+
   const choicesEl = node.querySelector('.node-choices');
   if (choicesEl) choicesEl.style.display = 'none';
 
