@@ -1,4 +1,4 @@
-const CACHE = 'identity-sim-v12';
+const CACHE = 'identity-sim-v13';
 const ASSETS = [
   '.',
   'index.html',

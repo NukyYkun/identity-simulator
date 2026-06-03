@@ -7,6 +7,8 @@ let currentEventIndex = 0;
 let pendingChoice = null;
 let nodeCounter = 0;
 let visitedBranchTarget = -1;
+let inBranch = false;
+let branchChainEnd = -1; // 当前分支链的最后一个索引
 let collectionTab = 'all';
 let selectedCharacter = null;
 
@@ -206,6 +208,8 @@ function prepareLife(char) {
   pendingChoice = null;
   nodeCounter = 0;
   visitedBranchTarget = -1;
+  inBranch = false;
+  branchChainEnd = -1;
 
   document.getElementById('lifeHeader').innerHTML = `
     <div class="life-char-name">${char.name}</div>
@@ -233,7 +237,7 @@ function appendEvent(index) {
   const char = currentCharacter;
   const event = char.events[index];
   const isLast = index >= char.events.length - 1 ||
-    (index === visitedBranchTarget && event.branchEnd);
+    (inBranch && event.branchEnd);
   const isFinal = isLast && (!event.choices || event.choices.length === 0);
 
   const timeline = document.getElementById('timeline');
@@ -314,7 +318,7 @@ function makeChoice(index, nodeId) {
   const isLast = currentEventIndex >= currentCharacter.events.length - 1;
   const willEnd = choice.branch === 'end' || (isLast && choice.branch === 'main');
   const willEndViaBranch = !isNaN(branchNum) && branchNum < currentCharacter.events.length &&
-    isLastMeaningfulEvent(branchNum);
+    (currentCharacter.events[branchNum].branchEnd || isLastMeaningfulEvent(branchNum));
 
   document.getElementById('lifeActions').innerHTML = `
     <button class="btn btn-primary" onclick="proceedAfterChoice()">
@@ -354,6 +358,26 @@ function proceedAfterChoice() {
   if (!isNaN(branchNum) && branchNum < currentCharacter.events.length) {
     currentEventIndex = branchNum;
     visitedBranchTarget = branchNum;
+    inBranch = true;
+    // 计算当前分支链的边界：从入口向后找连续的[分支]事件，遇到另一个分支入口则停止
+    const allBranchTargets = new Set();
+    currentCharacter.events.forEach((ev) => {
+      if (ev.choices) ev.choices.forEach((c) => {
+        const bn = parseInt(c.branch);
+        if (!isNaN(bn)) allBranchTargets.add(bn);
+      });
+    });
+    branchChainEnd = branchNum;
+    let next = branchNum + 1;
+    while (next < currentCharacter.events.length) {
+      const nev = currentCharacter.events[next];
+      if (nev.text && nev.text.startsWith('[分支]') && !allBranchTargets.has(next)) {
+        branchChainEnd = next;
+        next++;
+      } else {
+        break;
+      }
+    }
     appendEvent(currentEventIndex);
     return;
   }
@@ -363,7 +387,7 @@ function proceedAfterChoice() {
 
 function proceedNoChoice() {
   const event = currentCharacter.events[currentEventIndex];
-  if (currentEventIndex === visitedBranchTarget && event && event.branchEnd) {
+  if (inBranch && event && event.branchEnd) {
     showEnding();
     return;
   }
@@ -374,11 +398,19 @@ function advanceToNext() {
   currentEventIndex++;
   while (currentEventIndex < currentCharacter.events.length) {
     const evt = currentCharacter.events[currentEventIndex];
-    if (evt.text && evt.text.startsWith('[分支]') && currentEventIndex !== visitedBranchTarget) {
-      currentEventIndex++;
-      continue;
+    if (evt.text && evt.text.startsWith('[分支]')) {
+      if (inBranch && currentEventIndex <= branchChainEnd) {
+        // 仍在当前分支链内，继续播放
+        break;
+      } else {
+        // 主线上跳过分支事件，或者已超出当前链边界
+        currentEventIndex++;
+        continue;
+      }
+    } else {
+      // 非分支事件，照常播放（主线结局或后续剧情）
+      break;
     }
-    break;
   }
   if (currentEventIndex >= currentCharacter.events.length) {
     showEnding();
@@ -394,8 +426,15 @@ function showEnding() {
   document.getElementById('endingEra').textContent = char.era + ' · ' + char.location;
 
   let summary = char.summary;
-  if (visitedBranchTarget >= 0 && char.events[visitedBranchTarget] && char.events[visitedBranchTarget].branchSummary) {
-    summary = char.events[visitedBranchTarget].branchSummary;
+  if (inBranch) {
+    // 取分支链中最后一个有branchSummary的事件（从链尾向链头找）
+    const searchEnd = Math.min(branchChainEnd, currentEventIndex);
+    for (let i = searchEnd; i >= visitedBranchTarget; i--) {
+      if (char.events[i] && char.events[i].branchSummary) {
+        summary = char.events[i].branchSummary;
+        break;
+      }
+    }
   }
   document.getElementById('endingSummary').textContent = summary;
   document.getElementById('endingHistory').textContent = char.historyNote;
@@ -466,6 +505,7 @@ function viewCollection(id) {
   const char = characterPool.find(c => c.id === id);
   if (!char) return;
   currentCharacter = char;
+  inBranch = false;
   const tone = char.tone || 'ember';
   document.getElementById('screen-ending').setAttribute('data-tone', tone);
   showEnding();
