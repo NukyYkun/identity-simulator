@@ -9,7 +9,6 @@ let nodeCounter = 0;
 let visitedBranchTarget = -1;
 let inBranch = false;
 let branchChainEnd = -1; // 当前分支链的最后一个索引
-let collectionTab = 'all';
 let selectedCharacter = null;
 
 // ====== 工具函数 ======
@@ -121,18 +120,25 @@ function getHistory() {
   catch { return []; }
 }
 
-function addToHistory(charId) {
+function getLastResults() {
+  try { return JSON.parse(localStorage.getItem('lifeLastResults') || '{}'); }
+  catch { return {}; }
+}
+
+function addToHistory(charId, summary) {
   const h = getHistory();
   if (!h.includes(charId)) {
     h.unshift(charId);
     localStorage.setItem('lifeHistory', JSON.stringify(h));
   }
+  // 总是更新最近一次的结局 summary
+  if (summary) {
+    const results = getLastResults();
+    results[charId] = summary;
+    localStorage.setItem('lifeLastResults', JSON.stringify(results));
+  }
 }
 
-function getCollections() {
-  try { return JSON.parse(localStorage.getItem('collections') || '[]'); }
-  catch { return []; }
-}
 
 // ====== Tone 配色映射 ======
 const TONE_COLORS = {
@@ -247,7 +253,8 @@ function appendEvent(index) {
   node.id = nodeId;
   node.dataset.eventIndex = index;
 
-  const ageLabel = event.age === 0 ? '出生' : event.age + '岁';
+  const isBranchEvent = event.text && event.text.startsWith('[分支]');
+  const ageLabel = (event.age === 0 && isBranchEvent) ? '—' : (event.age === 0 ? '出生' : event.age + '岁');
 
   node.innerHTML = `
     <div class="node-badge">${ageLabel}</div>
@@ -439,66 +446,154 @@ function showEnding() {
   document.getElementById('endingSummary').textContent = summary;
   document.getElementById('endingHistory').textContent = char.historyNote;
 
-  const collected = getCollections().includes(char.id);
-  const btn = document.getElementById('btnCollect');
-  btn.textContent = collected ? '已收藏' : '收藏此生';
-  btn.className = 'btn ' + (collected ? 'btn-link' : 'btn-secondary');
-
-  addToHistory(char.id);
+  addToHistory(char.id, summary);
   showScreen('ending');
 }
 
-function toggleCollect() {
-  const c = getCollections();
-  const idx = c.indexOf(currentCharacter.id);
-  if (idx > -1) { c.splice(idx, 1); }
-  else { c.push(currentCharacter.id); }
-  localStorage.setItem('collections', JSON.stringify(c));
+// ====== 前世档案（收藏页） ======
 
-  const collected = idx === -1;
-  const btn = document.getElementById('btnCollect');
-  btn.textContent = collected ? '已收藏' : '收藏此生';
-  btn.className = 'btn ' + (collected ? 'btn-link' : 'btn-secondary');
-}
+const TONE_META = {
+  blaze: { label: '烈火', order: 0, color: '#e05537' },
+  drift: { label: '蜉蝣身', order: 1, color: '#5ca0d3' },
+  ember: { label: '持灯照夜', order: 2, color: '#d4a745' },
+  mute:  { label: '微尘', order: 3, color: '#8a8a8a' },
+  still: { label: '自在客', order: 4, color: '#6db87b' },
+};
 
-// ====== 收藏页 ======
-function switchCollectionTab(tab) {
-  collectionTab = tab;
-  document.getElementById('tabAll').classList.toggle('active', tab === 'all');
-  document.getElementById('tabCollected').classList.toggle('active', tab === 'collected');
-  renderCollection();
+// 生成遮蔽文案：取 oneLiner，连续涂抹大段文字
+function generateMysteryText(oneLiner) {
+  if (!oneLiner) return '？？？';
+  const text = oneLiner;
+  // 把文字按"显示段 / 涂抹段"交替切分
+  // 规则：显示2-4字 → 涂抹3-7字 → 循环，标点始终显示
+  let result = '';
+  let i = 0;
+  let phase = 'show'; // show 或 redact
+  let phaseLen = 2 + Math.floor((text.charCodeAt(0) || 0) % 3); // 首段显示2-4字
+  let count = 0;
+
+  while (i < text.length) {
+    const ch = text[i];
+    // 标点永远显示
+    if (/[，。、？！；：""''（）—…·]/.test(ch)) {
+      result += ch;
+      i++;
+      continue;
+    }
+
+    if (phase === 'show') {
+      result += ch;
+      count++;
+      if (count >= phaseLen) {
+        phase = 'redact';
+        phaseLen = 3 + Math.floor(((i * 7 + 13) % 5)); // 涂抹3-7字
+        count = 0;
+      }
+    } else {
+      // 涂抹段：用一整个 span 包住连续的 █
+      let blockLen = 0;
+      let blockStart = i;
+      while (i < text.length && count < phaseLen) {
+        const c = text[i];
+        if (/[，。、？！；：""''（）—…·]/.test(c)) break;
+        blockLen++;
+        count++;
+        i++;
+      }
+      if (blockLen > 0) {
+        result += '<span class="redact">' + '█'.repeat(blockLen) + '</span>';
+      }
+      phase = 'show';
+      phaseLen = 2 + Math.floor(((blockStart * 3 + 7) % 3)); // 下一段显示2-4字
+      count = 0;
+      continue; // 不要 i++ 因为 while 循环里已经推进了
+    }
+    i++;
+  }
+  return result;
 }
 
 function renderCollection() {
   const history = getHistory();
-  const collections = getCollections();
-  const grid = document.getElementById('collectionGrid');
-  const empty = document.getElementById('collectionEmpty');
+  const total = characterPool.length;
+  const unlocked = history.length;
 
-  const ids = collectionTab === 'collected'
-    ? history.filter(id => collections.includes(id))
-    : history;
+  document.getElementById('collectionSubtitle').textContent = `已集 ${unlocked} / ${total} 人`;
 
-  if (ids.length === 0) {
-    grid.innerHTML = '';
-    empty.style.display = 'flex';
-    return;
-  }
-  empty.style.display = 'none';
+  // 按 tone 分组
+  const groups = {};
+  Object.keys(TONE_META).forEach(t => { groups[t] = []; });
+  characterPool.forEach(char => {
+    const t = char.tone || 'ember';
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(char);
+  });
 
-  grid.innerHTML = ids.map(id => {
-    const char = characterPool.find(c => c.id === id);
-    if (!char) return '';
-    const starred = collections.includes(id);
+  const tabsContainer = document.getElementById('toneTabs');
+  const panelsContainer = document.getElementById('tonePanels');
+  const sortedTones = Object.keys(TONE_META).sort((a, b) => TONE_META[a].order - TONE_META[b].order);
+
+  // Render tabs
+  tabsContainer.innerHTML = sortedTones.map((tone, i) => {
+    const chars = groups[tone] || [];
+    if (chars.length === 0) return '';
+    const unlockedInTone = chars.filter(c => history.includes(c.id)).length;
+    const meta = TONE_META[tone];
+    const activeClass = i === 0 ? ' active' : '';
     return `
-      <div class="collection-card" onclick="viewCollection('${id}')">
-        <span class="cc-name">${char.name}</span>
-        <span class="cc-era">${char.era}</span>
-        <span class="cc-tagline">${char.oneLiner}</span>
-        <span class="cc-star ${starred ? 'collected' : ''}">${starred ? '★' : '☆'}</span>
-      </div>
-    `;
+      <div class="tone-tab${activeClass}" data-tone="${tone}" style="--tone-bar:${meta.color}" onclick="switchToneTab('${tone}')">
+        <span class="tone-tab-label">${meta.label}</span>
+        <span class="tone-tab-count">${unlockedInTone}/${chars.length}</span>
+      </div>`;
   }).join('');
+
+  // Render panels
+  panelsContainer.innerHTML = sortedTones.map((tone, i) => {
+    const chars = groups[tone] || [];
+    if (chars.length === 0) return '';
+    const activeClass = i === 0 ? ' active' : '';
+
+    const cardsHtml = chars.map(char => {
+      const isUnlocked = history.includes(char.id);
+      if (isUnlocked) {
+        return `
+          <div class="char-card" onclick="viewCollection('${char.id}')">
+            <div class="char-card-name">${char.name}</div>
+            <div class="char-card-liner">${char.oneLiner}</div>
+          </div>`;
+      } else {
+        const mystery = generateMysteryText(char.oneLiner);
+        return `
+          <div class="char-card locked">
+            <div class="char-card-mystery">${mystery}</div>
+          </div>`;
+      }
+    }).join('');
+
+    return `
+      <div class="tone-panel${activeClass}" data-tone="${tone}">
+        <div class="tone-panel-grid">${cardsHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function switchToneTab(tone) {
+  document.querySelectorAll('.tone-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.getAttribute('data-tone') === tone);
+  });
+  document.querySelectorAll('.tone-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.getAttribute('data-tone') === tone);
+  });
+
+  // 吸附滚动：将选中 tab 居中
+  const wrapper = document.getElementById('toneTabsWrapper');
+  const activeTab = wrapper.querySelector('.tone-tab.active');
+  if (wrapper && activeTab) {
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+    const scrollLeft = activeTab.offsetLeft - (wrapperRect.width / 2) + (tabRect.width / 2);
+    wrapper.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
+  }
 }
 
 function viewCollection(id) {
@@ -508,7 +603,20 @@ function viewCollection(id) {
   inBranch = false;
   const tone = char.tone || 'ember';
   document.getElementById('screen-ending').setAttribute('data-tone', tone);
-  showEnding();
+
+  // 展示最近一次体验的 summary
+  const lastResults = getLastResults();
+  const summary = lastResults[char.id] || char.summary;
+  document.getElementById('endingName').textContent = char.name;
+  document.getElementById('endingEra').textContent = char.era + ' · ' + char.location;
+  document.getElementById('endingSummary').textContent = summary;
+  document.getElementById('endingHistory').textContent = char.historyNote;
+  showScreen('ending');
+}
+
+function replayLife() {
+  if (!currentCharacter) return;
+  startTransition(currentCharacter);
 }
 
 // ====== 初始化 ======

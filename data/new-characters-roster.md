@@ -68,6 +68,37 @@
 
 ---
 
+## 草稿文件结构规范（踩坑总结）
+
+### 已知问题
+
+部分草稿 JSON 文件存在以下结构性错误（不影响当前线上功能，因为草稿未被程序加载，但合入 `characters.json` 前必须修正）：
+
+1. **branchSummary 错误放置在角色顶层**
+   - 错误：`{ "id": "xxx", "branchSummary": "...", "events": [...] }`
+   - 正确：branchSummary 必须放在 events 数组中对应的 `[分支]` 事件对象内
+   - 受影响文件：部分 `new_char_*.json`
+
+2. **缺少 tone 字段**
+   - 部分草稿未写入 tone 字段，合入时需根据本文档的「tone」列补充
+
+3. **branch 索引可能 off-by-one**
+   - 草稿编写时未严格从 0 计数，合入前需逐一验证
+
+### 合入前必做清单
+
+将草稿合入 `data/characters.json` 之前，对每个角色执行：
+
+- [ ] 确认 `branchSummary` 在事件对象内部（非顶层）
+- [ ] 确认每个 `[分支]` 事件都有 `branchSummary`
+- [ ] 用索引从 0 重新数，确认 `branch` 值正确
+- [ ] 含死亡描写的分支事件有 `"branchEnd": true`
+- [ ] `tone` 字段已填写（参照本文档 tone 列）
+- [ ] `id` 格式统一为 `{era}-{role}-{number}`
+- [ ] 合入后运行 mute 占比校验（≤ 30%）
+
+---
+
 ## 写作进度（全部完成 ✓）
 
 - [x] 法蒂玛 → `new_batch1.json`（含真分支）

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="style.css?v=20">
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -45,7 +45,7 @@
         <span class="cta-line"></span>
       </div>
 
-      <button class="btn-link" onclick="showScreen('collection');renderCollection()">前世档案</button>
+      <button class="btn-link archive-link" onclick="showScreen('collection');renderCollection()">前世档案</button>
     </div>
   </div>
 
@@ -76,30 +76,26 @@
       </div>
       <div class="ending-actions">
         <button class="btn btn-primary" onclick="startDraw()">换一个人生</button>
-        <button class="btn btn-secondary" id="btnCollect" onclick="toggleCollect()">收藏此生</button>
-        <button class="btn btn-ghost-center" onclick="showScreen('home')">回到入口</button>
+        <button class="btn btn-secondary" onclick="replayLife()">重历此生</button>
+        <button class="btn btn-ghost-center" onclick="showScreen('collection');renderCollection()">前世档案</button>
       </div>
     </div>
   </div>
 
-  <!-- ====== 收藏页 ====== -->
+  <!-- ====== 前世档案（收藏页） ====== -->
   <div id="screen-collection" class="screen">
     <div class="collection-content">
-      <h2 class="collection-title">前世档案</h2>
-      <div class="collection-tabs">
-        <button class="collection-tab active" onclick="switchCollectionTab('all')" id="tabAll">全部</button>
-        <button class="collection-tab" onclick="switchCollectionTab('collected')" id="tabCollected">已收藏</button>
+      <div class="collection-header">
+        <h2 class="collection-title">前世档案</h2>
+        <div class="collection-subtitle" id="collectionSubtitle">已集 0 / 51 人</div>
       </div>
-      <div class="collection-grid" id="collectionGrid"></div>
-      <div class="collection-empty" id="collectionEmpty" style="display:none">
-        <p>尚未经历过任何人生</p>
-        <button class="btn btn-primary" onclick="startDraw()">去体验</button>
-      </div>
-      <button class="btn-link" onclick="showScreen('home')">回到入口</button>
+<div class="tone-tabs-wrapper" id="toneTabsWrapper"><div class="tone-tabs" id="toneTabs"></div></div>
+<div class="tone-panels" id="tonePanels"></div>
+      <button class="btn-link collection-back" onclick="showScreen('home')"><span class="back-line"></span>归<span class="back-line"></span></button>
     </div>
   </div>
 
   <script src="data/characters.js"></script>
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>
