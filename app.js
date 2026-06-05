@@ -10,6 +10,7 @@ let visitedBranchTarget = -1;
 let inBranch = false;
 let branchChainEnd = -1; // 当前分支链的最后一个索引
 let selectedCharacter = null;
+let currentToneTab = null; // 记忆当前选中的 tab
 
 // ====== 工具函数 ======
 function smoothScrollToBottom(container) {
@@ -533,13 +534,16 @@ function renderCollection() {
   const panelsContainer = document.getElementById('tonePanels');
   const sortedTones = Object.keys(TONE_META).sort((a, b) => TONE_META[a].order - TONE_META[b].order);
 
+  // 确定当前应该激活的 tab
+  const activeTone = currentToneTab && sortedTones.includes(currentToneTab) ? currentToneTab : sortedTones[0];
+
   // Render tabs
   tabsContainer.innerHTML = sortedTones.map((tone, i) => {
     const chars = groups[tone] || [];
     if (chars.length === 0) return '';
     const unlockedInTone = chars.filter(c => history.includes(c.id)).length;
     const meta = TONE_META[tone];
-    const activeClass = i === 0 ? ' active' : '';
+    const activeClass = tone === activeTone ? ' active' : '';
     return `
       <div class="tone-tab${activeClass}" data-tone="${tone}" style="--tone-bar:${meta.color}" onclick="switchToneTab('${tone}')">
         <span class="tone-tab-label">${meta.label}</span>
@@ -551,7 +555,7 @@ function renderCollection() {
   panelsContainer.innerHTML = sortedTones.map((tone, i) => {
     const chars = groups[tone] || [];
     if (chars.length === 0) return '';
-    const activeClass = i === 0 ? ' active' : '';
+    const activeClass = tone === activeTone ? ' active' : '';
 
     const cardsHtml = chars.map(char => {
       const isUnlocked = history.includes(char.id);
@@ -578,6 +582,7 @@ function renderCollection() {
 }
 
 function switchToneTab(tone) {
+  currentToneTab = tone; // 记住用户选择
   document.querySelectorAll('.tone-tab').forEach(tab => {
     tab.classList.toggle('active', tab.getAttribute('data-tone') === tone);
   });
