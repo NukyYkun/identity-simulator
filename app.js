@@ -147,7 +147,7 @@ const TONE_COLORS = {
   drift: { primary: '#5a8a8a', light: '#98b0ac', dark: '#1a2e2e' },
   blaze: { primary: '#b05a3a', light: '#c0a898', dark: '#2e1810' },
   ember: { primary: '#b89050', light: '#d4b878', dark: '#2e2210' },
-  still: { primary: '#6878a0', light: '#a0a8b8', dark: '#1a1e2e' },
+  ease: { primary: '#6878a0', light: '#a0a8b8', dark: '#1a1e2e' },
 };
 
 // ====== 入口：点击触碰命运 ======
@@ -458,7 +458,7 @@ const TONE_META = {
   drift: { label: '蜉蝣身', order: 1, color: '#5ca0d3' },
   ember: { label: '持灯照夜', order: 2, color: '#d4a745' },
   mute:  { label: '微尘', order: 3, color: '#8a8a8a' },
-  still: { label: '自在客', order: 4, color: '#6db87b' },
+  ease: { label: '自在客', order: 4, color: '#6db87b' },
 };
 
 // 生成遮蔽文案：取 oneLiner，连续涂抹大段文字

@@ -486,7 +486,7 @@ body::after {
   --tone-text: #b8a898;
   --tone-bright: #e8dcd0;
 }
-[data-tone="still"] {
+[data-tone="ease"] {
   --tone-bg: #090a0e;
   --tone-bg2: #14161e;
   --tone-accent: #6878a0;
