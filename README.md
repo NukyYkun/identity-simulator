@@ -4,7 +4,7 @@
 
 ## 体验地址
 
-🔗 **https://nukyykun.github.io/identity-simulator/**
+🔗 **https://identity-simulator.netlify.app**
 
 ## 关于
 
